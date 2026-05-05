@@ -1,11 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { app } from "../../firebase";
-import {
-  getDownloadURL,
-  getStorage,
-  ref,
-  uploadBytesResumable,
-} from "firebase/storage";
 import { useNavigate, useParams } from "react-router";
 
 const UpdatePackage = () => {
@@ -29,7 +22,6 @@ const UpdatePackage = () => {
   const [images, setImages] = useState([]);
   const [imageUploadError, setImageUploadError] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [imageUploadPercent, setImageUploadPercent] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
 
@@ -38,7 +30,6 @@ const UpdatePackage = () => {
       const res = await fetch(`/api/package/get-package-data/${params?.id}`);
       const data = await res.json();
       if (data?.success) {
-        // console.log(data);
         setFormData({
           packageName: data?.packageData?.packageName,
           packageDescription: data?.packageData?.packageDescription,
@@ -72,60 +63,43 @@ const UpdatePackage = () => {
     }
   };
 
-  const handleImageSubmit = () => {
-    if (
-      images.length > 0 &&
-      images.length + formData.packageImages.length < 6
-    ) {
+  const handleImageSubmit = async () => {
+    if (images.length > 0 && images.length + formData.packageImages.length < 6) {
       setUploading(true);
       setImageUploadError(false);
-      const promises = [];
-
+      
+      const data = new FormData();
       for (let i = 0; i < images.length; i++) {
-        promises.push(storeImage(images[i]));
+        data.append("images", images[i]);
       }
-      Promise.all(promises)
-        .then((urls) => {
+
+      try {
+        const res = await fetch("/api/upload/images", {
+          method: "POST",
+          body: data,
+        });
+        const result = await res.json();
+        
+        if (result.success) {
           setFormData({
             ...formData,
-            packageImages: formData.packageImages.concat(urls),
+            packageImages: formData.packageImages.concat(result.urls),
           });
           setImageUploadError(false);
           setUploading(false);
-        })
-        .catch((err) => {
-          setImageUploadError("Image upload failed (2mb max per image)");
+          setImages([]);
+        } else {
+          setImageUploadError(result.message || "Upload failed");
           setUploading(false);
-        });
+        }
+      } catch (err) {
+        setImageUploadError(`Upload failed: ${err.message} (Check size <= 10MB)`);
+        setUploading(false);
+      }
     } else {
-      setImageUploadError("You can only upload 5 images per package");
+      setImageUploadError("You can only upload up to 5 images total");
       setUploading(false);
     }
-  };
-
-  const storeImage = async (file) => {
-    return new Promise((resolve, reject) => {
-      const storage = getStorage(app);
-      const fileName = new Date().getTime() + file.name;
-      const storageRef = ref(storage, fileName);
-      const uploadTask = uploadBytesResumable(storageRef, file);
-      uploadTask.on(
-        "state_changed",
-        (snapshot) => {
-          const progress =
-            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setImageUploadPercent(Math.floor(progress));
-        },
-        (error) => {
-          reject(error);
-        },
-        () => {
-          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-            resolve(downloadURL);
-          });
-        }
-      );
-    });
   };
 
   const handleDeleteImage = (index) => {
@@ -354,7 +328,7 @@ const UpdatePackage = () => {
             <label htmlFor="packageImages">
               Images:
               <span className="text-red-700 text-sm">
-                (images size should be less than 2mb and max 5 images)
+                (images size should be less than 10mb and max 5 images)
               </span>
             </label>
             <input
@@ -392,7 +366,7 @@ const UpdatePackage = () => {
             onClick={handleImageSubmit}
           >
             {uploading
-              ? `Uploading...(${imageUploadPercent}%)`
+              ? "Uploading..."
               : loading
               ? "Loading..."
               : "Upload Images"}

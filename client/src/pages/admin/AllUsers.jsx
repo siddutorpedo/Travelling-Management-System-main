@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from "react";
-import { FaTrash } from "react-icons/fa";
+import { HiOutlineTrash, HiOutlineSearch, HiOutlineMail, HiOutlinePhone } from "react-icons/hi";
 
 const AllUsers = () => {
   const [allUser, setAllUsers] = useState([]);
@@ -24,100 +23,130 @@ const AllUsers = () => {
       }
     } catch (error) {
       console.log(error);
+      setLoading(false);
     }
   };
+
   useEffect(() => {
     getUsers();
-    if (search) getUsers();
   }, [search]);
 
   const handleUserDelete = async (userId) => {
-    const CONFIRM = confirm(
-      "Are you sure ? the account will be permenantly deleted!"
-    );
-    if (CONFIRM) {
+    if (!window.confirm("Are you sure? This account will be permanently deleted!")) return;
+    try {
       setLoading(true);
-      try {
-        const res = await fetch(`/api/user/delete-user/${userId}`, {
-          method: "DELETE",
-        });
-        const data = await res.json();
-        if (data?.success === false) {
-          setLoading(false);
-          alert("Something went wrong!");
-          return;
-        }
+      const res = await fetch(`/api/user/delete-user/${userId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data?.success === false) {
         setLoading(false);
-        alert(data?.message);
-        getUsers();
-      } catch (error) {}
+        alert("Something went wrong!");
+        return;
+      }
+      setLoading(false);
+      alert(data?.message);
+      getUsers();
+    } catch (error) {
+      console.log(error);
+      setLoading(false);
     }
   };
 
   return (
-    <>
-      <div className="w-full flex justify-center">
-        <div className="w-full shadow-lg rounded-lg p-2">
-          <h1 className="text-2xl text-center">
-            {loading ? "Loading..." : "All Users"}
-          </h1>
-          {error && <h1 className="text-center text-2xl">{error}</h1>}
-          <div>
-            <input
-              type="text"
-              className="my-3 p-2 rounded-lg border"
-              placeholder="Search name,email or phone..."
-              onChange={(e) => {
-                setSearch(e.target.value);
-              }}
-            />
-            <h2 className="text-xl font-semibold mb-2 ml-2">
-              Total Users: {allUser.length ? allUser?.length : "Loading..."}
-            </h2>
-          </div>
-          {allUser ? (
-            allUser.map((user, i) => {
-              return (
-                <div
-                  className="flex overflow-auto justify-between p-2 px-3 border-y-2 gap-3"
-                  key={i}
-                >
-                  <h5 className="flex flex-1 justify-center items-center text-ellipsis p-[5px]">
-                    {user._id}
-                  </h5>
-                  <h5 className="flex flex-1 justify-center items-center text-ellipsis p-[5px]">
-                    {user.username}
-                  </h5>
-                  <h5 className="flex flex-1 justify-center items-center text-ellipsis p-[5px]">
-                    {user.email}
-                  </h5>
-                  <h5 className="flex flex-1 justify-center items-center text-ellipsis p-[5px]">
-                    {user.address}
-                  </h5>
-                  <h5 className="flex flex-1 justify-center items-center text-ellipsis p-[5px]">
-                    {user.phone}
-                  </h5>
-                  <div className="flex flex-col flex-1 justify-center items-center p-[5px]">
-                    <button
-                      disabled={loading}
-                      className="p-2 text-red-500 hover:cursor-pointer hover:scale-125 disabled:opacity-80"
-                      onClick={() => {
-                        handleUserDelete(user._id);
-                      }}
-                    >
-                      <FaTrash />
-                    </button>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <></>
-          )}
+    <div className="w-full">
+      <div className="page-header">
+        <div>
+          <h2 className="page-title">Customer Management</h2>
+          <p className="page-subtitle">Manage your registered users and their details.</p>
         </div>
       </div>
-    </>
+
+      <div className="flex flex-col gap-6">
+        <div className="flex justify-between items-center">
+          <div className="relative min-w-[300px]">
+             <input
+              type="text"
+              className="w-full pl-10 pr-4 py-2 bg-white border border-gray-100 rounded-lg text-sm outline-none focus:border-primary transition-all"
+              placeholder="Search by name, email or phone..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          </div>
+          <div className="text-sm font-medium text-gray-500">
+            Total Customers: <span className="text-gray-900 font-bold">{allUser.length}</span>
+          </div>
+        </div>
+
+        <div className="admin-card overflow-hidden">
+          <div className="admin-table-container">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>User Details</th>
+                  <th>Contact Info</th>
+                  <th>Address</th>
+                  <th>ID</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan="5" className="text-center py-12">Loading users...</td></tr>
+                ) : (
+                  allUser.map((user, i) => (
+                    <tr key={i}>
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-sm uppercase">
+                            {user.username?.substring(0, 2)}
+                          </div>
+                          <div>
+                            <span className="font-bold block text-gray-800">{user.username}</span>
+                            <span className="text-xs text-emerald-600 font-medium capitalize">Active Customer</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <HiOutlineMail className="text-gray-400" />
+                            {user.email}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <HiOutlinePhone className="text-gray-400" />
+                            {user.phone || 'N/A'}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="max-w-[200px] truncate text-gray-600">{user.address || 'N/A'}</td>
+                      <td className="font-mono text-[10px] text-gray-400 uppercase">{user._id.substring(18)}</td>
+                      <td>
+                        <button
+                          disabled={loading}
+                          className="p-2 text-gray-400 hover:text-rose-600 transition-colors"
+                          onClick={() => handleUserDelete(user._id)}
+                        >
+                          <HiOutlineTrash className="text-xl" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+                {allUser.length === 0 && !loading && (
+                  <tr>
+                    <td colSpan="5" className="text-center py-12 text-gray-500">No users found matching your search.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
 export default AllUsers;
+

@@ -22,90 +22,47 @@ import { app } from "../../firebase";
 import AllBookings from "./AllBookings";
 import AdminUpdateProfile from "./AdminUpdateProfile";
 import AddPackages from "./AddPackages";
-import "./styles/DashboardStyle.css";
 import AllPackages from "./AllPackages";
 import AllUsers from "./AllUsers";
 import Payments from "./Payments";
 import RatingsReviews from "./RatingsReviews";
 import History from "./History";
+import { HiOutlineChartBar, HiOutlineCurrencyDollar, HiOutlineUsers, HiOutlineClock, HiOutlineDownload, HiPlusCircle, HiOutlineLogout } from "react-icons/hi";
+
+// New Components
+import AdminSidebar from "./components/AdminSidebar";
+import AdminHeader from "./components/AdminHeader";
+import "./styles/AdminLayout.css";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const fileRef = useRef(null);
-  const { currentUser, loading, error } = useSelector((state) => state.user);
-  const [profilePhoto, setProfilePhoto] = useState(undefined);
-  const [photoPercentage, setPhotoPercentage] = useState(0);
+  const { currentUser, loading: userLoading, error } = useSelector((state) => state.user);
   const [activePanelId, setActivePanelId] = useState(1);
-  const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    address: "",
-    phone: "",
-    avatar: "",
-  });
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   useEffect(() => {
-    if (currentUser !== null) {
-      setFormData({
-        username: currentUser.username,
-        email: currentUser.email,
-        address: currentUser.address,
-        phone: currentUser.phone,
-        avatar: currentUser.avatar,
-      });
+    // If not admin, redirect
+    if (!currentUser || currentUser.user_role !== 1) {
+      navigate("/login");
+    } else {
+      fetchStats();
     }
-  }, [currentUser]);
+  }, [currentUser, navigate]);
 
-  const handleProfilePhoto = (photo) => {
+  const fetchStats = async () => {
     try {
-      dispatch(updateUserStart());
-      const storage = getStorage(app);
-      const photoname = new Date().getTime() + photo.name.replace(/\s/g, "");
-      const storageRef = ref(storage, `profile-photos/${photoname}`); //profile-photos - folder name in firebase
-      const uploadTask = uploadBytesResumable(storageRef, photo);
-
-      uploadTask.on(
-        "state_changed",
-        (snapshot) => {
-          const progress = Math.floor(
-            (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-          );
-          //   console.log(progress);
-          setPhotoPercentage(progress);
-        },
-        (error) => {
-          console.log(error);
-        },
-        () => {
-          getDownloadURL(uploadTask.snapshot.ref).then(async (downloadUrl) => {
-            const res = await fetch(
-              `/api/user/update-profile-photo/${currentUser._id}`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": " application/json",
-                },
-                body: JSON.stringify({ avatar: downloadUrl }),
-              }
-            );
-            const data = await res.json();
-            if (data?.success) {
-              alert(data?.message);
-              setFormData({ ...formData, avatar: downloadUrl });
-              dispatch(updateUserSuccess(data?.user));
-              setProfilePhoto(null);
-              return;
-            } else {
-              dispatch(updateUserFailure(data?.message));
-            }
-            dispatch(updateUserFailure(data?.message));
-            alert(data?.message);
-          });
-        }
-      );
+      setStatsLoading(true);
+      const res = await fetch("/api/admin/stats");
+      const data = await res.json();
+      if (data.success) {
+        setStats(data.stats);
+      }
+      setStatsLoading(false);
     } catch (error) {
       console.log(error);
+      setStatsLoading(false);
     }
   };
 
@@ -114,269 +71,193 @@ const AdminDashboard = () => {
       dispatch(logOutStart());
       const res = await fetch("/api/auth/logout");
       const data = await res.json();
-      if (data?.success !== true) {
-        dispatch(logOutFailure(data?.message));
+      if (data.success === false) {
+        dispatch(logOutFailure(data.message));
         return;
       }
-      dispatch(logOutSuccess());
+      dispatch(logOutSuccess(data));
       navigate("/login");
-      alert(data?.message);
     } catch (error) {
-      console.log(error);
+      dispatch(logOutFailure(error.message));
     }
   };
 
-  const handleDeleteAccount = async (e) => {
-    e.preventDefault();
-    const CONFIRM = confirm(
-      "Are you sure ? the account will be permenantly deleted!"
-    );
-    if (CONFIRM) {
-      try {
-        dispatch(deleteUserAccountStart());
-        const res = await fetch(`/api/user/delete/${currentUser._id}`, {
-          method: "DELETE",
-        });
-        const data = await res.json();
-        if (data?.success === false) {
-          dispatch(deleteUserAccountFailure(data?.message));
-          alert("Something went wrong!");
-          return;
-        }
-        dispatch(deleteUserAccountSuccess());
-        alert(data?.message);
-      } catch (error) {}
+  const renderContent = () => {
+    switch (activePanelId) {
+      case 1:
+        return (
+          <div className="w-full">
+            <div className="page-header">
+              <div>
+                <h2 className="page-title">Travel Overview</h2>
+                <p className="page-subtitle">Welcome back, {currentUser?.username}. Here's what's happening today.</p>
+              </div>
+              <div className="flex gap-3">
+                <button 
+                  onClick={fetchStats}
+                  className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
+                >
+                  <span>{statsLoading ? "Refreshing..." : "Refresh Stats"}</span>
+                </button>
+                <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center gap-2">
+                  <span>Export Report</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="stats-grid">
+              <div className="admin-card stat-card">
+                <div className="stat-info">
+                  <h3>Total Bookings</h3>
+                  <div className="stat-value">{statsLoading ? "..." : stats?.totalBookings || 0}</div>
+                  <div className="stat-trend trend-up">
+                    <span className="font-medium">+12.5%</span> from last month
+                  </div>
+                </div>
+                <div className="stat-icon bg-emerald-50 text-emerald-500">
+                  <HiOutlineChartBar className="text-2xl" />
+                </div>
+              </div>
+              <div className="admin-card stat-card">
+                <div className="stat-info">
+                  <h3>Total Revenue</h3>
+                  <div className="stat-value">${statsLoading ? "..." : stats?.totalRevenue?.toLocaleString() || 0}</div>
+                  <div className="stat-trend trend-up">
+                    <span className="font-medium">+8.2%</span> from last month
+                  </div>
+                </div>
+                <div className="stat-icon bg-blue-50 text-blue-500">
+                  <HiOutlineCurrencyDollar className="text-2xl" />
+                </div>
+              </div>
+              <div className="admin-card stat-card">
+                <div className="stat-info">
+                  <h3>Active Travelers</h3>
+                  <div className="stat-value">{statsLoading ? "..." : stats?.activeTravelers || 0}</div>
+                  <div className="stat-trend trend-up">
+                    <span className="font-medium">+4.1%</span> from last month
+                  </div>
+                </div>
+                <div className="stat-icon bg-purple-50 text-purple-500">
+                  <HiOutlineUsers className="text-2xl" />
+                </div>
+              </div>
+              <div className="admin-card stat-card">
+                <div className="stat-info">
+                  <h3>Pending Requests</h3>
+                  <div className="stat-value">{statsLoading ? "..." : stats?.pendingRequests || 0}</div>
+                  <div className="text-xs text-rose-500 mt-2 font-medium">Action Required</div>
+                </div>
+                <div className="stat-icon bg-orange-50 text-orange-500">
+                  <HiOutlineClock className="text-2xl" />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              <div className="xl:col-span-2 admin-card p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-lg font-bold">Recent Bookings</h3>
+                  <button onClick={() => setActivePanelId(9)} className="text-primary text-sm font-medium hover:underline">View All Bookings</button>
+                </div>
+                <AllBookings dashboardView={true} stats={stats} statsLoading={statsLoading} />
+              </div>
+              <div className="admin-card p-6">
+                <h3 className="text-lg font-bold mb-6">Top Destinations</h3>
+                <div className="flex flex-col gap-4">
+                  {statsLoading ? (
+                    <p className="text-center py-4 text-gray-400">Loading destinations...</p>
+                  ) : (
+                    stats?.topDestinations?.length > 0 ? (
+                      stats.topDestinations.map((dest, i) => (
+                        <div key={i} className="flex flex-col gap-2">
+                          <div className="flex justify-between text-sm font-medium">
+                            <span>{dest.name}</span>
+                            <span>{dest.percentage}%</span>
+                          </div>
+                          <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                            <div className={`bg-primary h-full`} style={{ width: `${dest.percentage}%` }}></div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-center py-4 text-gray-400 text-sm">No destination data yet</p>
+                    )
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 2:
+        return <AddPackages />;
+      case 3:
+        return (
+          <div className="w-full">
+             <div className="page-header">
+              <div>
+                <h2 className="page-title">Luxury Catalog</h2>
+                <p className="page-subtitle">Manage corporate travel packages and destination visibility.</p>
+              </div>
+              <button onClick={() => setActivePanelId(2)} className="new-booking-btn !mb-0 !w-auto !px-6">
+                <span>Add New Package</span>
+              </button>
+            </div>
+            <AllPackages stats={stats} statsLoading={statsLoading} />
+          </div>
+        );
+      case 4:
+        return <AllUsers />;
+      case 5:
+        return <Payments />;
+      case 6:
+        return <RatingsReviews />;
+      case 7:
+        return <History />;
+      case 8:
+        return <AdminUpdateProfile />;
+      case 9:
+        return (
+          <div className="w-full">
+            <div className="page-header">
+              <div>
+                <h2 className="page-title">Booking Management</h2>
+                <p className="page-subtitle">Review and manage corporate travel arrangements across all regions.</p>
+              </div>
+              <div className="flex gap-3">
+                <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center gap-2">
+                  <HiOutlineDownload />
+                  <span>Export</span>
+                </button>
+                <button onClick={() => setActivePanelId(2)} className="px-4 py-2 bg-accent text-white rounded-lg text-sm font-bold hover:bg-accent-hover transition-colors flex items-center gap-2">
+                  <HiPlusCircle />
+                  <span>Add New Booking</span>
+                </button>
+              </div>
+            </div>
+            <AllBookings stats={stats} statsLoading={statsLoading} />
+          </div>
+        );
+      default:
+        return <div>Page Not Found!</div>;
     }
   };
 
   return (
-    <div className="flex w-full flex-wrap max-sm:flex-col p-2">
-      {currentUser ? (
-        <>
-          <div className="w-[35%] p-3 max-sm:w-full">
-            <div className="flex flex-col items-center gap-4 p-3">
-              <div className="w-full flex flex-col items-center relative">
-                <img
-                  src={
-                    (profilePhoto && URL.createObjectURL(profilePhoto)) ||
-                    formData.avatar
-                  }
-                  alt="Profile photo"
-                  className="w-64 min-h-52 max-h-64 rounded-lg"
-                  onClick={() => fileRef.current.click()}
-                  onMouseOver={() => {
-                    document
-                      .getElementById("photoLabel")
-                      .classList.add("block");
-                  }}
-                  onMouseOut={() => {
-                    document
-                      .getElementById("photoLabel")
-                      .classList.remove("block");
-                  }}
-                />
-                <input
-                  type="file"
-                  name="photo"
-                  id="photo"
-                  hidden
-                  ref={fileRef}
-                  accept="image/*"
-                  onChange={(e) => setProfilePhoto(e.target.files[0])}
-                />
-                <label
-                  htmlFor="photo"
-                  id="photoLabel"
-                  className="w-64 bg-slate-300 absolute bottom-0 p-2 text-center text-lg text-white font-semibold rounded-b-lg"
-                  hidden
-                >
-                  Choose Photo
-                </label>
-              </div>
-              {profilePhoto && (
-                <div className="flex w-full justify-between gap-1">
-                  <button
-                    onClick={() => handleProfilePhoto(profilePhoto)}
-                    className="bg-green-700 p-2 text-white mt-3 flex-1 hover:opacity-90"
-                  >
-                    {loading ? `Uploading...(${photoPercentage}%)` : "Upload"}
-                  </button>
-                </div>
-              )}
-              <p
-                style={{
-                  width: "100%",
-                  borderBottom: "1px solid black",
-                  lineHeight: "0.1em",
-                  margin: "10px",
-                }}
-              >
-                <span className="font-semibold" style={{ background: "#fff" }}>
-                  Details
-                </span>
-              </p>
-              <div className="w-full flex justify-between px-1">
-                <button
-                  onClick={handleLogout}
-                  className="text-red-600 text-lg font-semibold self-start border border-red-600 p-1 rounded-lg hover:bg-red-600 hover:text-white"
-                >
-                  Log-out
-                </button>
-                <button
-                  onClick={() => setActivePanelId(8)}
-                  className="text-white text-lg self-end bg-gray-500 p-1 rounded-lg hover:bg-gray-700"
-                >
-                  Edit Profile
-                </button>
-              </div>
-              <div className="w-full shadow-2xl rounded-lg p-3 break-all">
-                <p className="text-3xl font-semibold m-1">
-                  Hi {currentUser.username} !
-                </p>
-                <p className="text-lg font-semibold">
-                  Email:{currentUser.email}
-                </p>
-                <p className="text-lg font-semibold">
-                  Phone:{currentUser.phone}
-                </p>
-                <p className="text-lg font-semibold">
-                  Address:{currentUser.address}
-                </p>
-              </div>
-              <button
-                onClick={handleDeleteAccount}
-                className="text-red-600 hover:underline"
-              >
-                Delete account
-              </button>
-            </div>
-          </div>
-          {/* ---------------------------------------------------------------------------------------- */}
-          <div className="w-[65%] max-sm:w-full">
-            <div className="main-div">
-              <nav className="w-full border-blue-500 border-b-4 overflow-x-auto navbar">
-                <div className="w-full flex gap-2">
-                  <button
-                    className={
-                      activePanelId === 1
-                        ? "p-1 rounded-t transition-all duration-300 text-nowrap bg-blue-500 text-white"
-                        : "p-1 rounded-t transition-all duration-300 text-nowrap"
-                    }
-                    id="bookings"
-                    onClick={() => setActivePanelId(1)}
-                  >
-                    Bookings
-                  </button>
-                  <button
-                    className={
-                      activePanelId === 2
-                        ? "p-1 rounded-t transition-all duration-300 text-nowrap bg-blue-500 text-white"
-                        : "p-1 rounded-t transition-all duration-300 text-nowrap"
-                    }
-                    id="bookings"
-                    onClick={() => setActivePanelId(2)}
-                  >
-                    Add Packages
-                  </button>
-                  <button
-                    className={
-                      activePanelId === 3
-                        ? "p-1 rounded-t transition-all duration-300 text-nowrap bg-blue-500 text-white"
-                        : "p-1 rounded-t transition-all duration-300 text-nowrap"
-                    }
-                    id="bookings"
-                    onClick={() => setActivePanelId(3)}
-                  >
-                    All Packages
-                  </button>
-                  <button
-                    className={
-                      activePanelId === 4
-                        ? "p-1 rounded-t transition-all duration-300 text-nowrap bg-blue-500 text-white"
-                        : "p-1 rounded-t transition-all duration-300 text-nowrap"
-                    }
-                    id="bookings"
-                    onClick={() => setActivePanelId(4)}
-                  >
-                    Users
-                  </button>
-                  <button
-                    className={
-                      activePanelId === 5
-                        ? "p-1 rounded-t transition-all duration-300 text-nowrap bg-blue-500 text-white"
-                        : "p-1 rounded-t transition-all duration-300 text-nowrap"
-                    }
-                    id="bookings"
-                    onClick={() => setActivePanelId(5)}
-                  >
-                    Payments
-                  </button>
-                  <button
-                    className={
-                      activePanelId === 6
-                        ? "p-1 rounded-t transition-all duration-300 text-nowrap bg-blue-500 text-white"
-                        : "p-1 rounded-t transition-all duration-300 text-nowrap"
-                    }
-                    id="bookings"
-                    onClick={() => setActivePanelId(6)}
-                  >
-                    Ratings/Reviews
-                  </button>
-                  <button
-                    className={
-                      activePanelId === 7
-                        ? "p-1 rounded-t transition-all duration-300 text-nowrap bg-blue-500 text-white"
-                        : "p-1 rounded-t transition-all duration-300 text-nowrap"
-                    }
-                    id="bookings"
-                    onClick={() => setActivePanelId(7)}
-                  >
-                    History
-                  </button>
-                  {/* <button
-                    className={
-                      activePanelId === 7
-                        ? "p-1 rounded-t transition-all duration-300 text-nowrap bg-blue-500 text-white"
-                        : "p-1 rounded-t transition-all duration-300 text-nowrap"
-                    }
-                    id="updateProfile"
-                    onClick={() => setActivePanelId(7)}
-                  >
-                    Update Profile
-                  </button> */}
-                </div>
-              </nav>
-              <div className="content-div flex flex-wrap">
-                {activePanelId === 1 ? (
-                  <AllBookings />
-                ) : activePanelId === 2 ? (
-                  <AddPackages />
-                ) : activePanelId === 3 ? (
-                  <AllPackages />
-                ) : activePanelId === 4 ? (
-                  <AllUsers />
-                ) : activePanelId === 5 ? (
-                  <Payments />
-                ) : activePanelId === 6 ? (
-                  <RatingsReviews />
-                ) : activePanelId === 7 ? (
-                  <History />
-                ) : activePanelId === 8 ? (
-                  <AdminUpdateProfile />
-                ) : (
-                  <div>Page Not Found!</div>
-                )}
-              </div>
-            </div>
-          </div>
-        </>
-      ) : (
-        <div>
-          <p className="text-red-700">Login First</p>
+    <div className="admin-layout">
+      <AdminSidebar activePanelId={activePanelId} setActivePanelId={setActivePanelId} handleLogout={handleLogout} />
+      
+      <div className="admin-main">
+        <AdminHeader handleLogout={handleLogout} />
+        
+        <div className="mt-8">
+          {renderContent()}
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
 export default AdminDashboard;
+
+

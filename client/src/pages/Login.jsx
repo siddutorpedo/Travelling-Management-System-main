@@ -12,7 +12,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.user);
   const [formData, setFormData] = useState({
-    email: "",
+    login: "",
     password: "",
   });
   // console.log(formData);
@@ -65,13 +65,13 @@ const Login = () => {
             <p className="text-center text-gray-300 text-sm">Welcome back to Dream Tours</p>
           </div>
           <div className="flex flex-col gap-1">
-            <label htmlFor="email" className="font-medium text-white text-sm ml-1">
-              Email Address
+            <label htmlFor="login" className="font-medium text-white text-sm ml-1">
+              Username or Email
             </label>
             <input
-              type="email"
-              id="email"
-              placeholder="Enter your email"
+              type="text"
+              id="login"
+              placeholder="Enter your username or email"
               className="p-3 rounded-xl border border-white border-opacity-20 bg-white bg-opacity-10 text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
               onChange={handleChange}
               required

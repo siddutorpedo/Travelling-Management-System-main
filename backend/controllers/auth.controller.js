@@ -54,16 +54,18 @@ export const signupController = async (req, res) => {
 //login controller
 export const loginController = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { login, password } = req.body;
 
-    if (!email || !password) {
+    if (!login || !password) {
       return res.status(200).send({
         success: false,
         message: "All fields are required!",
       });
     }
 
-    const validUser = await User.findOne({ email });
+    const validUser = await User.findOne({
+      $or: [{ email: login }, { username: login }],
+    });
     if (!validUser) {
       return res.status(404).send({
         success: false,
@@ -74,7 +76,7 @@ export const loginController = async (req, res) => {
     if (!validPassword) {
       return res.status(200).send({
         success: false,
-        message: "Invalid email or password",
+        message: "Invalid login or password",
       });
     }
 

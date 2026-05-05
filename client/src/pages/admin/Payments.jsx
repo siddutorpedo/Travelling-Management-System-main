@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
+import { HiOutlineSearch, HiOutlineCurrencyDollar, HiOutlineDownload, HiOutlineCheckCircle } from "react-icons/hi";
 
 const Payments = () => {
   const { currentUser } = useSelector((state) => state.user);
@@ -12,20 +13,18 @@ const Payments = () => {
   const getAllBookings = async () => {
     try {
       setLoading(true);
-      const res = await fetch(
-        `/api/booking/get-allBookings?searchTerm=${search}`
-      );
+      const res = await fetch(`/api/booking/get-allBookings?searchTerm=${search}`);
       const data = await res.json();
       if (data?.success) {
         setAllBookings(data?.bookings);
-        setLoading(false);
         setError(false);
       } else {
-        setLoading(false);
         setError(data?.message);
       }
+      setLoading(false);
     } catch (error) {
       console.log(error);
+      setLoading(false);
     }
   };
 
@@ -34,52 +33,94 @@ const Payments = () => {
   }, [search]);
 
   return (
-    <div className="w-full flex justify-center">
-      <div className="w-[95%] shadow-xl rounded-lg p-3 flex flex-col gap-2">
-        <h1 className="text-center text-2xl">Payments</h1>
-        {loading && <h1 className="text-center text-2xl">Loading...</h1>}
-        {error && <h1 className="text-center text-2xl">{error}</h1>}
-        <div className="w-full border-b-4">
-          <input
-            className="border rounded-lg p-2 mb-2"
-            type="text"
-            placeholder="Search Username or Email"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-            }}
-          />
+    <div className="w-full">
+      <div className="page-header">
+        <div>
+          <h2 className="page-title">Financial Records</h2>
+          <p className="page-subtitle">Track payments, revenue, and transaction history across the platform.</p>
         </div>
-        {!loading &&
-          allBookings &&
-          allBookings.map((booking, i) => {
-            return (
-              <div
-                className="w-full border-y-2 p-3 flex flex-wrap overflow-auto gap-3 items-center justify-between"
-                key={i}
-              >
-                <Link to={`/package/${booking?.packageDetails?._id}`}>
-                  <img
-                    className="w-12 h-12"
-                    src={booking?.packageDetails?.packageImages[0]}
-                    alt="Package Image"
-                  />
-                </Link>
-                <Link to={`/package/${booking?.packageDetails?._id}`}>
-                  <p className="hover:underline">
-                    {booking?.packageDetails?.packageName}
-                  </p>
-                </Link>
-                <p>{booking?.buyer?.username}</p>
-                <p>{booking?.buyer?.email}</p>
-                <p>{booking?.date}</p>
-                <p>${booking?.totalPrice}</p>
-              </div>
-            );
-          })}
+        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+          <HiOutlineDownload />
+          <span>Download Statement</span>
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-6">
+        <div className="flex justify-between items-center">
+          <div className="relative min-w-[350px]">
+             <input
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm outline-none focus:border-primary transition-all"
+              type="text"
+              placeholder="Search by customer name or email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Volume:</span>
+            <span className="text-lg font-bold text-gray-800">${allBookings.reduce((acc, curr) => acc + (curr.totalPrice || 0), 0).toLocaleString()}</span>
+          </div>
+        </div>
+
+        <div className="admin-card overflow-hidden">
+          <div className="admin-table-container">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Transaction ID</th>
+                  <th>Customer</th>
+                  <th>Package</th>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan="6" className="text-center py-12">Loading transactions...</td></tr>
+                ) : (
+                  allBookings.map((booking, i) => (
+                    <tr key={i}>
+                      <td className="font-mono text-xs text-gray-400 uppercase">#TXN-{booking?._id.substring(18)}</td>
+                      <td>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-gray-800">{booking?.buyer?.username}</span>
+                          <span className="text-[10px] text-gray-400">{booking?.buyer?.email}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                           <img
+                            src={booking?.packageDetails?.packageImages[0]}
+                            className="w-8 h-8 rounded object-cover shadow-sm"
+                            alt="pkg"
+                          />
+                          <span className="text-xs font-medium text-gray-600 truncate max-w-[150px]">{booking?.packageDetails?.packageName}</span>
+                        </div>
+                      </td>
+                      <td className="text-xs text-gray-500">{new Date(booking?.date).toLocaleDateString()}</td>
+                      <td className="font-bold text-gray-800">${booking?.totalPrice?.toLocaleString()}</td>
+                      <td>
+                        <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-emerald-500">
+                          <HiOutlineCheckCircle />
+                          Paid
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+                {!loading && allBookings.length === 0 && (
+                  <tr><td colSpan="6" className="text-center py-12 text-gray-500">No payment records found.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
 export default Payments;
+

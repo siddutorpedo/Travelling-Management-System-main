@@ -28,6 +28,9 @@ const Header = () => {
           <li className="hover:text-white transition-all duration-300 transform hover:scale-105">
             <Link to="/about">About</Link>
           </li>
+          <li className="hover:text-blue-400 transition-all duration-300 transform hover:scale-105 font-bold border-l border-white border-opacity-10 pl-4">
+            <Link to="/profile/admin">Admin</Link>
+          </li>
           <li className="flex items-center justify-center ml-2">
             {currentUser ? (
               <Link

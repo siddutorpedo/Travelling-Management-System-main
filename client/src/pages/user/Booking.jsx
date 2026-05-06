@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { FaClock, FaMapMarkerAlt, FaCreditCard, FaLock } from "react-icons/fa";
 import { useSelector } from "react-redux";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "react-router-dom";
 
 const Booking = () => {
   const { currentUser } = useSelector((state) => state.user);
@@ -113,16 +113,16 @@ const Booking = () => {
 
   useEffect(() => {
     if (packageData && params?.packageId) {
-      setBookingData({
-        ...bookingData,
+      setBookingData((prev) => ({
+        ...prev,
         packageDetails: params?.packageId,
         buyer: currentUser?._id,
         totalPrice: packageData?.packageDiscountPrice
-          ? packageData?.packageDiscountPrice * bookingData?.persons
-          : packageData?.packagePrice * bookingData?.persons,
-      });
+          ? packageData?.packageDiscountPrice * prev.persons
+          : packageData?.packagePrice * prev.persons,
+      }));
     }
-  }, [packageData, params, bookingData.persons]);
+  }, [packageData, params?.packageId, currentUser]);
 
   return (
     <div className="bg-gray-50 min-h-screen py-10 px-4">

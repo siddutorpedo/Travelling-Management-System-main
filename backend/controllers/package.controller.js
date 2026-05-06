@@ -85,7 +85,29 @@ export const deletePackage = async (req, res) => {
 
 export const getPackages = async (req, res) => {
   try {
-    const packages = await Package.find({});
+    const limit = parseInt(req.query.limit) || 9;
+    const startIndex = parseInt(req.query.startIndex) || 0;
+    
+    let offer = req.query.offer;
+    if (offer === undefined || offer === 'false') {
+      offer = { $in: [false, true] };
+    }
+
+    const searchTerm = req.query.searchTerm || "";
+    const sort = req.query.sort || "createdAt";
+    const order = req.query.order || "desc";
+
+    const packages = await Package.find({
+      $or: [
+        { packageName: { $regex: searchTerm, $options: "i" } },
+        { packageDestination: { $regex: searchTerm, $options: "i" } },
+      ],
+      packageOffer: offer,
+    })
+      .sort({ [sort]: order })
+      .limit(limit)
+      .skip(startIndex);
+
     return res.status(200).send({
       success: true,
       packages,

@@ -7,7 +7,7 @@ const Search = () => {
   const [sideBarSearchData, setSideBarSearchData] = useState({
     searchTerm: "",
     offer: false,
-    sort: "created_at",
+    sort: "createdAt",
     order: "desc",
   });
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,7 @@ const Search = () => {
       setSideBarSearchData({
         searchTerm: searchTermFromUrl || "",
         offer: offerFromUrl === "true" ? true : false,
-        sort: sortFromUrl || "created_at",
+        sort: sortFromUrl || "createdAt",
         order: orderFromUrl || "desc",
       });
     }
@@ -67,7 +67,7 @@ const Search = () => {
       });
     }
     if (e.target.id === "sort_order") {
-      const sort = e.target.value.split("_")[0] || "created_at";
+      const sort = e.target.value.split("_")[0] || "createdAt";
 
       const order = e.target.value.split("_")[1] || "desc";
 
@@ -133,7 +133,7 @@ const Search = () => {
             <label className="font-semibold">Sort:</label>
             <select
               onChange={handleChange}
-              defaultValue={"created_at_desc"}
+              defaultValue={"createdAt_desc"}
               id="sort_order"
               className="p-3 border rounded-lg"
             >

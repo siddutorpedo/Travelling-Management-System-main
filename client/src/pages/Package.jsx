@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
 import SwiperCore from "swiper";
@@ -51,10 +51,17 @@ const Package = () => {
     rating: 0,
     review: "",
     packageId: params?.id,
-    userRef: currentUser?._id,
-    username: currentUser?.username,
-    userProfileImg: currentUser?.avatar,
+    userRef: "",
   });
+
+  useEffect(() => {
+    if (currentUser) {
+      setRatingsData(prev => ({
+        ...prev,
+        userRef: currentUser._id,
+      }));
+    }
+  }, [currentUser]);
   const [packageRatings, setPackageRatings] = useState([]);
   const [ratingGiven, setRatingGiven] = useState(false);
   const [showFullDesc, setShowFullDesc] = useState(false);
@@ -204,7 +211,7 @@ const Package = () => {
                         </span>
                         {(+packageData?.packageDays > 0) && (
                           <span className="flex items-center gap-2 bg-white bg-opacity-20 backdrop-blur-md px-4 py-2 rounded-full border border-white border-opacity-30">
-                            <FaClock /> {packageData.packageDays} Days / {packageData.packageNights} Nights
+                            <FaClock /> {packageData?.packageDays || 0} Days / {packageData?.packageNights || 0} Nights
                           </span>
                         )}
                       </div>
@@ -271,9 +278,11 @@ const Package = () => {
             </h2>
             <div className="text-gray-600 leading-relaxed space-y-4">
               <p>
-                {showFullDesc ? packageData?.packageDescription : `${packageData?.packageDescription.substring(0, 350)}${packageData?.packageDescription.length > 350 ? '...' : ''}`}
+                {showFullDesc 
+                  ? packageData?.packageDescription 
+                  : `${(packageData?.packageDescription || "").substring(0, 350)}${(packageData?.packageDescription || "").length > 350 ? '...' : ''}`}
               </p>
-              {packageData?.packageDescription.length > 350 && (
+              {(packageData?.packageDescription || "").length > 350 && (
                 <button 
                   onClick={() => setShowFullDesc(!showFullDesc)}
                   className="text-blue-600 font-bold hover:underline"
@@ -365,9 +374,9 @@ const Package = () => {
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-2xl font-bold text-gray-800">Traveler Feedback</h2>
               <div className="flex items-center gap-2">
-                <Rating value={packageData.packageRating} readOnly precision={0.1} />
-                <span className="font-bold text-gray-800">{packageData.packageRating.toFixed(1)}</span>
-                <span className="text-gray-400 text-sm">({packageData.packageTotalRatings} reviews)</span>
+                <Rating value={packageData?.packageRating || 0} readOnly precision={0.1} />
+                <span className="font-bold text-gray-800">{(packageData?.packageRating || 0).toFixed(1)}</span>
+                <span className="text-gray-400 text-sm">({packageData?.packageTotalRatings || 0} reviews)</span>
               </div>
             </div>
 

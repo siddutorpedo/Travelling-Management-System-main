@@ -62,7 +62,6 @@ export const getCurrentBookings = async (req, res) => {
       status: "Booked",
     })
       .populate("packageDetails")
-      // .populate("buyer", "username email")
       .populate({
         path: "buyer",
         match: {
@@ -73,23 +72,20 @@ export const getCurrentBookings = async (req, res) => {
         },
       })
       .sort({ createdAt: "asc" });
-    let bookingsFilterd = [];
-    bookings.map((booking) => {
-      if (booking.buyer !== null) {
-        bookingsFilterd.push(booking);
-      }
-    });
+    
+    let bookingsFilterd = bookings.filter(b => b.buyer !== null);
+    
     if (bookingsFilterd.length) {
       return res.status(200).send({
         success: true,
         bookings: bookingsFilterd,
       });
-    } else {
-      return res.status(200).send({
-        success: false,
-        message: "No Bookings Available",
-      });
     }
+    return res.status(200).send({
+      success: true,
+      bookings: [],
+      message: "No Bookings Available",
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).send({
@@ -126,10 +122,8 @@ export const getAllBookings = async (req, res) => {
       })
       .sort({ createdAt: "desc" });
 
-    // Filter out if buyer search didn't match (when searchTerm is provided)
     let bookingsFiltered = bookings.filter(b => b.buyer !== null);
     
-    // If we have a destination filter (using searchTerm for simplicity or adding a new param)
     const destinationTerm = req?.query?.destination || "";
     if (destinationTerm) {
       bookingsFiltered = bookingsFiltered.filter(b => 
@@ -143,12 +137,12 @@ export const getAllBookings = async (req, res) => {
         success: true,
         bookings: bookingsFiltered,
       });
-    } else {
-      return res.status(200).send({
-        success: false,
-        message: "No Bookings Available",
-      });
     }
+    return res.status(200).send({
+      success: true,
+      bookings: [],
+      message: "No Bookings Available",
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).send({
@@ -174,7 +168,6 @@ export const getUserCurrentBookings = async (req, res) => {
       date: { $gt: new Date().toISOString() },
       status: "Booked",
     })
-      // .populate("packageDetails")
       .populate({
         path: "packageDetails",
         match: {
@@ -183,23 +176,20 @@ export const getUserCurrentBookings = async (req, res) => {
       })
       .populate("buyer", "username email")
       .sort({ createdAt: "asc" });
-    let bookingsFilterd = [];
-    bookings.map((booking) => {
-      if (booking.packageDetails !== null) {
-        bookingsFilterd.push(booking);
-      }
-    });
+
+    let bookingsFilterd = bookings.filter(b => b.packageDetails !== null);
+    
     if (bookingsFilterd.length) {
       return res.status(200).send({
         success: true,
         bookings: bookingsFilterd,
       });
-    } else {
-      return res.status(200).send({
-        success: false,
-        message: "No Bookings Available",
-      });
     }
+    return res.status(200).send({
+      success: true,
+      bookings: [],
+      message: "No Bookings Available",
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).send({
@@ -223,7 +213,6 @@ export const getAllUserBookings = async (req, res) => {
     const bookings = await Booking.find({
       buyer: new ObjectId(req?.params?.id),
     })
-      // .populate("packageDetails")
       .populate({
         path: "packageDetails",
         match: {
@@ -232,23 +221,20 @@ export const getAllUserBookings = async (req, res) => {
       })
       .populate("buyer", "username email")
       .sort({ createdAt: "asc" });
-    let bookingsFilterd = [];
-    bookings.map((booking) => {
-      if (booking.packageDetails !== null) {
-        bookingsFilterd.push(booking);
-      }
-    });
+
+    let bookingsFilterd = bookings.filter(b => b.packageDetails !== null);
+    
     if (bookingsFilterd.length) {
       return res.status(200).send({
         success: true,
         bookings: bookingsFilterd,
       });
-    } else {
-      return res.status(200).send({
-        success: false,
-        message: "No Bookings Available",
-      });
     }
+    return res.status(200).send({
+      success: true,
+      bookings: [],
+      message: "No Bookings Available",
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).send({
@@ -326,6 +312,7 @@ export const cancelBooking = async (req, res) => {
     });
   }
 };
+
 //complete booking
 export const completeBooking = async (req, res) => {
   try {

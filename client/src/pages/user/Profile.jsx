@@ -11,17 +11,17 @@ import {
   deleteUserAccountStart,
   deleteUserAccountSuccess,
   deleteUserAccountFailure,
-} from "../redux/user/userSlice";
+} from "../../redux/user/userSlice";
 import {
   getDownloadURL,
   getStorage,
   ref,
   uploadBytesResumable,
 } from "firebase/storage";
-import { app } from "../firebase";
-import MyBookings from "./user/MyBookings";
-import UpdateProfile from "./user/UpdateProfile";
-import MyHistory from "./user/MyHistory";
+import { app } from "../../firebase";
+import MyBookings from "./MyBookings";
+import UpdateProfile from "./UpdateProfile";
+import MyHistory from "./MyHistory";
 
 const Profile = () => {
   const navigate = useNavigate();

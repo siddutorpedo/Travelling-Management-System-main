@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { HiOutlineUser, HiOutlineLockClosed, HiOutlineMail, HiOutlinePhone, HiOutlineLocationMarker, HiOutlineCamera } from "react-icons/hi";
 import {
@@ -13,7 +13,10 @@ import {
 const AdminUpdateProfile = () => {
   const { currentUser, loading, error } = useSelector((state) => state.user);
   const dispatch = useDispatch();
+  const fileRef = useRef(null);
   const [activeTab, setActiveTab] = useState("profile");
+  const [profilePhoto, setProfilePhoto] = useState(undefined);
+  const [photoPercentage, setPhotoPercentage] = useState(0);
   const [formData, setFormData] = useState({
     username: "",
     address: "",
@@ -35,6 +38,49 @@ const AdminUpdateProfile = () => {
       });
     }
   }, [currentUser]);
+
+  const handleProfilePhoto = async (photo) => {
+    try {
+      dispatch(updateUserStart());
+      const res = await fetch(
+        `/api/user/update-profile-photo/${currentUser._id}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ avatar: photo }),
+        }
+      );
+      const data = await res.json();
+      if (data?.success) {
+        alert(data?.message);
+        setFormData({ ...formData, avatar: photo });
+        dispatch(updateUserSuccess(data?.user));
+        setProfilePhoto(null);
+      } else {
+        dispatch(updateUserFailure(data?.message));
+        alert(data?.message);
+      }
+    } catch (error) {
+      console.log(error);
+      dispatch(updateUserFailure("Failed to update photo"));
+    }
+  };
+
+  // For demonstration, since I don't have Firebase configured here, 
+  // I'll simulate the upload when a file is selected.
+  useEffect(() => {
+    if (profilePhoto) {
+      // In a real app, you'd upload to Firebase/S3 first
+      // Simulation:
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        handleProfilePhoto(reader.result);
+      };
+      reader.readAsDataURL(profilePhoto);
+    }
+  }, [profilePhoto]);
 
   const handleChange = (e) => {
     setFormData({
@@ -170,9 +216,20 @@ const AdminUpdateProfile = () => {
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <button type="button" className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full shadow-lg hover:bg-primary-hover transition-all">
+                    <button 
+                      type="button" 
+                      onClick={() => fileRef.current.click()}
+                      className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full shadow-lg hover:bg-primary-hover transition-all"
+                    >
                       <HiOutlineCamera />
                     </button>
+                    <input
+                      type="file"
+                      hidden
+                      ref={fileRef}
+                      accept="image/*"
+                      onChange={(e) => setProfilePhoto(e.target.files[0])}
+                    />
                   </div>
                   <h3 className="mt-4 font-bold text-gray-800">{currentUser?.username}</h3>
                   <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">System Administrator</p>

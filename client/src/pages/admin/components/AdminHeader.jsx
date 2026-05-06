@@ -12,15 +12,6 @@ const AdminHeader = ({ handleLogout }) => {
       </div>
 
       <div className="header-actions">
-        <div className="flex items-center gap-4 border-r border-gray-200 pr-4">
-          <div className="action-icon">
-            <HiOutlineBell className="text-xl" />
-            <span className="notification-dot"></span>
-          </div>
-          <div className="action-icon">
-            <HiOutlineChatAlt className="text-xl" />
-          </div>
-        </div>
 
         <div className="flex items-center gap-4">
           <button 

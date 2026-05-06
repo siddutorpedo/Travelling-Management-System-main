@@ -1,10 +1,17 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import defaultProfileImg from "../../assets/images/profile.png";
 
 const Header = () => {
   const { currentUser } = useSelector((state) => state.user);
+  const location = useLocation();
+
+  // Hide header on login and signup pages
+  if (location.pathname === "/login" || location.pathname === "/signup") {
+    return null;
+  }
+
   return (
     <>
       <div className="bg-slate-900 bg-opacity-90 backdrop-blur-md p-4 px-8 flex justify-between items-center sticky top-0 z-50 border-b border-white border-opacity-10 shadow-lg">
@@ -29,14 +36,12 @@ const Header = () => {
             <Link to="/about">About</Link>
           </li>
           <li className="hover:text-blue-400 transition-all duration-300 transform hover:scale-105 font-bold border-l border-white border-opacity-10 pl-4">
-            <Link to="/profile/admin">Admin</Link>
+            <Link to="/admin">Admin</Link>
           </li>
           <li className="flex items-center justify-center ml-2">
             {currentUser ? (
               <Link
-                to={`/profile/${
-                  currentUser.user_role === 1 ? "admin" : "user"
-                }`}
+                to={currentUser.user_role === 1 ? "/admin" : "/profile"}
                 className="hover:scale-110 transition-transform duration-300"
               >
                 <img

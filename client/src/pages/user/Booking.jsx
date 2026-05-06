@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { FaClock, FaMapMarkerAlt } from "react-icons/fa";
+import { FaClock, FaMapMarkerAlt, FaCreditCard, FaLock } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router";
-import DropIn from "braintree-web-drop-in-react";
-
 
 const Booking = () => {
   const { currentUser } = useSelector((state) => state.user);
   const params = useParams();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (currentUser?.user_role === 1) {
+      alert("Admins cannot book packages!");
+      navigate("/admin");
+    }
+  }, [currentUser, navigate]);
   const [packageData, setPackageData] = useState({
     packageName: "",
     packageDescription: "",
@@ -35,8 +40,6 @@ const Booking = () => {
     persons: 1,
     date: null,
   });
-  const [clientToken, setClientToken] = useState("");
-  const [instance, setInstance] = useState("");
   const [currentDate, setCurrentDate] = useState("");
 
   const getPackageData = async () => {
@@ -55,53 +58,44 @@ const Booking = () => {
       }
     } catch (error) {
       console.log(error);
+      setLoading(false);
     }
   };
 
-  //get paymentgateway token
-  const getToken = async () => {
-    try {
-      const res = await fetch(`/api/package/braintree/token`);
-      const data = await res.json();
-      setClientToken(data?.clientToken);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-  useEffect(() => {
-    getToken();
-  }, [currentUser]);
-
-  //handle payment & book package
   const handleBookPackage = async () => {
-    if (
-      bookingData.packageDetails === "" ||
-      bookingData.buyer === "" ||
-      bookingData.totalPrice <= 0 ||
-      bookingData.persons <= 0 ||
-      bookingData.date === ""
-    ) {
-      alert("All fields are required!");
+    if (!bookingData.date) {
+      alert("Please select a travel date!");
       return;
     }
+    if (!currentUser?.address || !currentUser?.phone) {
+      alert("Please update your profile with address and phone before booking!");
+      return;
+    }
+
     try {
       setLoading(true);
-      const res = await fetch(`/api/booking/book-package/${params?.id}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(bookingData),
-      });
-      const data = await res.json();
-      if (data?.success) {
-        setLoading(false);
-        alert(data?.message);
-        navigate(`/profile/${currentUser?.user_role === 1 ? "admin" : "user"}`);
-      } else {
-        setLoading(false);
-        alert(data?.message);
-      }
+      // Simulating dummy payment processing
+      setTimeout(async () => {
+        const res = await fetch(`/api/booking/book-package/${params?.packageId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...bookingData,
+            paymentId: "DUMMY_PAYMENT_" + Math.random().toString(36).substr(2, 9),
+          }),
+        });
+        const data = await res.json();
+        if (data?.success) {
+          setLoading(false);
+          alert("Payment Successful! Your trip has been booked.");
+          navigate(`/profile`);
+        } else {
+          setLoading(false);
+          alert(data?.message);
+        }
+      }, 1500);
     } catch (error) {
       console.log(error);
       setLoading(false);
@@ -112,9 +106,9 @@ const Booking = () => {
     if (params?.packageId) {
       getPackageData();
     }
-    let date = new Date().toISOString().substring(0, 10);
-    let d = date.substring(0, 8) + (parseInt(date.substring(8)) + 1);
-    setCurrentDate(d);
+    let date = new Date();
+    date.setDate(date.getDate() + 1);
+    setCurrentDate(date.toISOString().substring(0, 10));
   }, [params?.packageId]);
 
   useEffect(() => {
@@ -128,226 +122,134 @@ const Booking = () => {
           : packageData?.packagePrice * bookingData?.persons,
       });
     }
-  }, [packageData, params]);
+  }, [packageData, params, bookingData.persons]);
 
   return (
-    <div className="w-full flex flex-col items-center">
-      <div className="w-[95%] flex flex-col items-center p-6 rounded shadow-2xl gap-3">
-        <h1 className="text-center font-bold text-2xl">Book Package</h1>
-        {/* user info */}
-        <div className="w-full flex flex-wrap justify-center gap-2">
-          <div className="pr-3 md:border-r md:pr-6">
-            <div className="flex flex-col p-2 w-64 xsm:w-72 h-fit gap-2">
-              <div className="flex flex-col">
-                <label htmlFor="username" className="font-semibold">
-                  Username:
-                </label>
-                <input
-                  type="text"
-                  id="username"
-                  className="p-1 rounded border border-black"
-                  value={currentUser.username}
-                  disabled
-                />
+    <div className="bg-gray-50 min-h-screen py-10 px-4">
+      <div className="max-w-5xl mx-auto">
+        <h1 className="text-3xl font-black text-gray-800 mb-8 flex items-center gap-3">
+          <span className="w-2 h-8 bg-blue-600 rounded-full"></span>
+          Confirm Your Booking
+        </h1>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column: Forms */}
+          <div className="lg:col-span-2 space-y-6">
+            
+            {/* Traveler Info */}
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+              <h2 className="text-xl font-bold text-gray-800 mb-6">Traveler Information</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-400 uppercase">Full Name</label>
+                  <p className="font-semibold text-gray-800 p-3 bg-gray-50 rounded-xl">{currentUser?.username}</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-400 uppercase">Email Address</label>
+                  <p className="font-semibold text-gray-800 p-3 bg-gray-50 rounded-xl">{currentUser?.email}</p>
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase">Phone Number</label>
+                  <p className="font-semibold text-gray-800 p-3 bg-gray-50 rounded-xl">{currentUser?.phone || "Not provided"}</p>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <label htmlFor="email" className="font-semibold">
-                  Email:
-                </label>
+            </div>
+
+            {/* Travel Date */}
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+              <h2 className="text-xl font-bold text-gray-800 mb-6">Select Travel Date</h2>
+              <div className="relative">
                 <input
-                  type="email"
-                  id="email"
-                  className="p-1 rounded border border-black"
-                  value={currentUser.email}
-                  disabled
+                  type="date"
+                  min={currentDate}
+                  className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-gray-700"
+                  onChange={(e) => setBookingData({ ...bookingData, date: e.target.value })}
                 />
+                <p className="mt-2 text-xs text-gray-400">Available from tomorrow onwards</p>
               </div>
-              <div className="flex flex-col">
-                <label htmlFor="address" className="font-semibold">
-                  Address:
-                </label>
-                <textarea
-                  maxLength={200}
-                  type="text"
-                  id="address"
-                  className="p-1 rounded border border-black resize-none"
-                  value={currentUser.address}
-                  disabled
-                />
+            </div>
+
+            {/* Dummy Payment Section */}
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+              <h2 className="text-xl font-bold text-gray-800 mb-2">Payment Method</h2>
+              <p className="text-sm text-gray-400 mb-6 italic">Simulation: No real money will be charged</p>
+              
+              <div className="border-2 border-blue-500 bg-blue-50 p-4 rounded-2xl flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white text-xl">
+                    <FaCreditCard />
+                  </div>
+                  <div>
+                    <p className="font-bold text-blue-900 text-sm">Demo Payment Gateway</p>
+                    <p className="text-xs text-blue-600 font-medium">Instant approval enabled</p>
+                  </div>
+                </div>
+                <div className="w-6 h-6 rounded-full border-4 border-blue-600 bg-white"></div>
               </div>
-              <div className="flex flex-col">
-                <label htmlFor="phone" className="font-semibold">
-                  Phone:
-                </label>
-                <input
-                  type="text"
-                  id="phone"
-                  className="p-1 rounded border border-black"
-                  value={currentUser.phone}
-                  disabled
-                />
+
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                <FaLock /> Your booking is secured with 256-bit encryption
               </div>
             </div>
           </div>
-          {/* package info */}
-          <div className="pl-3 md:border-l md:pl-6">
-            <div className="flex flex-col gap-1">
-              <div className="flex flex-wrap gap-2">
-                <img
-                  className="w-28"
-                  src={packageData.packageImages[0]}
-                  alt="Package image"
-                />
-                <div>
-                  <p className="font-semibold text-lg mb-1 capitalize">
-                    {packageData.packageName}
-                  </p>
-                  <p className="flex gap-2 text-green-700 font-semibold capitalize">
-                    <FaMapMarkerAlt /> {packageData.packageDestination}
-                  </p>
-                  {/* days & nights */}
-                  {(+packageData.packageDays > 0 ||
-                    +packageData.packageNights > 0) && (
-                    <p className="flex items-center gap-2">
-                      <FaClock />
-                      {+packageData.packageDays > 0 &&
-                        (+packageData.packageDays > 1
-                          ? packageData.packageDays + " Days"
-                          : packageData.packageDays + " Day")}
-                      {+packageData.packageDays > 0 &&
-                        +packageData.packageNights > 0 &&
-                        " - "}
-                      {+packageData.packageNights > 0 &&
-                        (+packageData.packageNights > 1
-                          ? packageData.packageNights + " Nights"
-                          : packageData.packageNights + " Night")}
-                    </p>
-                  )}
+
+          {/* Right Column: Summary Card */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-28 bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden">
+              <div className="p-6 bg-slate-900 text-white">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Booking Summary</p>
+                <h3 className="text-xl font-bold">{packageData.packageName}</h3>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500">Destination</span>
+                  <span className="font-bold text-gray-800">{packageData.packageDestination}</span>
                 </div>
-              </div>
-              <div className="flex flex-col my-1">
-                <label className="font-semibold" htmlFor="date">
-                  Select Date:
-                </label>
-                <input
-                  type="date"
-                  min={currentDate !== "" ? currentDate : ""}
-                  //   min={"2024-01-23"}
-                  id="date"
-                  className="w-max border rounded"
-                  onChange={(e) => {
-                    setBookingData({ ...bookingData, date: e.target.value });
-                  }}
-                />
-              </div>
-              {/* price */}
-              <p className="flex gap-1 text-xl font-semibold my-1">
-                Price:
-                {packageData.packageOffer ? (
-                  <>
-                    <span className="line-through text-gray-700">
-                      ${packageData.packagePrice}
-                    </span>{" "}
-                    -<span>${packageData.packageDiscountPrice}</span>
-                    <span className="text-lg ml-2 bg-green-700 p-1 rounded text-white">
-                      {Math.floor(
-                        ((+packageData.packagePrice -
-                          +packageData.packageDiscountPrice) /
-                          +packageData.packagePrice) *
-                          100
-                      )}
-                      % Off
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-green-700">
-                    ${packageData.packagePrice}
-                  </span>
-                )}
-              </p>
-              {/* price */}
-              <div className="flex border-2 w-max">
-                <button
-                  className="p-2 py-1 font-semibold"
-                  onClick={() => {
-                    if (bookingData.persons > 1) {
-                      setBookingData({
-                        ...bookingData,
-                        persons: (bookingData.persons -= 1),
-                        totalPrice: packageData.packageDiscountPrice
-                          ? packageData.packageDiscountPrice *
-                            bookingData.persons
-                          : packageData.packagePrice * bookingData.persons,
-                      });
-                    }
-                  }}
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500">Duration</span>
+                  <span className="font-bold text-gray-800">{packageData.packageDays}D / {packageData.packageNights}N</span>
+                </div>
+                
+                <hr className="border-gray-50" />
+
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500 text-sm font-medium text-center">Travelers</span>
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => bookingData.persons > 1 && setBookingData({...bookingData, persons: bookingData.persons - 1})}
+                      className="w-8 h-8 rounded-full border-2 border-gray-100 flex items-center justify-center font-black hover:bg-gray-50"
+                    >-</button>
+                    <span className="font-black text-lg w-4 text-center">{bookingData.persons}</span>
+                    <button 
+                      onClick={() => bookingData.persons < 10 && setBookingData({...bookingData, persons: bookingData.persons + 1})}
+                      className="w-8 h-8 rounded-full border-2 border-gray-100 flex items-center justify-center font-black hover:bg-gray-50"
+                    >+</button>
+                  </div>
+                </div>
+
+                <div className="pt-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Rate per person</span>
+                    <span className="font-medium text-gray-600">₹{packageData.packageDiscountPrice || packageData.packagePrice}</span>
+                  </div>
+                  <div className="flex justify-between items-end pt-2">
+                    <span className="text-gray-800 font-black">Total Price</span>
+                    <span className="text-3xl font-black text-blue-600">₹{bookingData.totalPrice}</span>
+                  </div>
+                </div>
+
+                <button 
+                  disabled={loading}
+                  onClick={handleBookPackage}
+                  className="w-full mt-6 py-4 bg-blue-600 text-white rounded-2xl text-lg font-black shadow-lg shadow-blue-100 hover:bg-blue-700 hover:shadow-xl transform active:scale-[0.98] transition-all disabled:opacity-50"
                 >
-                  -
+                  {loading ? "Processing..." : "Complete Booking"}
                 </button>
-                <input
-                  value={bookingData.persons}
-                  disabled
-                  type="text"
-                  className="border w-10 text-center text-lg"
-                />
-                <button
-                  className="p-2 py-1 font-semibold"
-                  onClick={() => {
-                    if (bookingData.persons < 10) {
-                      setBookingData({
-                        ...bookingData,
-                        persons: (bookingData.persons += 1),
-                        totalPrice: packageData.packageDiscountPrice
-                          ? packageData.packageDiscountPrice *
-                            bookingData.persons
-                          : packageData.packagePrice * bookingData.persons,
-                      });
-                    }
-                  }}
-                >
-                  +
-                </button>
-              </div>
-              <p className="text-xl font-semibold">
-                Total Price:
-                <span className="text-green-700">
-                  $
-                  {packageData.packageDiscountPrice
-                    ? packageData.packageDiscountPrice * bookingData.persons
-                    : packageData.packagePrice * bookingData.persons}
-                </span>
-              </p>
-              <div className="my-2 max-w-[300px] gap-1">
-                <p
-                  className={`font-semibold ${
-                    instance && "text-red-700 text-sm"
-                  }`}
-                >
-                  Payment:
-                  {!instance
-                    ? "Loading..."
-                    : "Don't use your original card details!(This is not the production build)"}
+                
+                <p className="text-[10px] text-center text-gray-400 mt-4 px-6 leading-relaxed">
+                  By clicking "Complete Booking", you agree to our Terms of Service and Privacy Policy.
                 </p>
-                {clientToken && (
-                  <>
-                    <DropIn
-                      options={{
-                        authorization: clientToken,
-                        paypal: {
-                          flow: "vault",
-                        },
-                      }}
-                      onInstance={(instance) => setInstance(instance)}
-                    />
-                    <button
-                      className="p-2 rounded bg-blue-600 text-white payment-btn disabled:optional:80 hover:opacity-95 cursor-pointer"
-                      onClick={handleBookPackage}
-                      disabled={loading || !instance || !currentUser?.address}
-                    >
-                      {loading ? "Processing..." : "Book Now"}
-                    </button>
-                  </>
-                )}
               </div>
             </div>
           </div>

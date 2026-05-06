@@ -31,19 +31,19 @@ const UpdatePackage = () => {
       const data = await res.json();
       if (data?.success) {
         setFormData({
-          packageName: data?.packageData?.packageName,
-          packageDescription: data?.packageData?.packageDescription,
-          packageDestination: data?.packageData?.packageDestination,
-          packageDays: data?.packageData?.packageDays,
-          packageNights: data?.packageData?.packageNights,
-          packageAccommodation: data?.packageData?.packageAccommodation,
-          packageTransportation: data?.packageData?.packageTransportation,
-          packageMeals: data?.packageData?.packageMeals,
-          packageActivities: data?.packageData?.packageActivities,
-          packagePrice: data?.packageData?.packagePrice,
-          packageDiscountPrice: data?.packageData?.packageDiscountPrice,
-          packageOffer: data?.packageData?.packageOffer,
-          packageImages: data?.packageData?.packageImages,
+          packageName: data?.package?.packageName,
+          packageDescription: data?.package?.packageDescription,
+          packageDestination: data?.package?.packageDestination,
+          packageDays: data?.package?.packageDays,
+          packageNights: data?.package?.packageNights,
+          packageAccommodation: data?.package?.packageAccommodation,
+          packageTransportation: data?.package?.packageTransportation,
+          packageMeals: data?.package?.packageMeals,
+          packageActivities: data?.package?.packageActivities,
+          packagePrice: data?.package?.packagePrice,
+          packageDiscountPrice: data?.package?.packageDiscountPrice,
+          packageOffer: data?.package?.packageOffer,
+          packageImages: data?.package?.packageImages,
         });
       } else {
         alert(data?.message || "Something went wrong!");

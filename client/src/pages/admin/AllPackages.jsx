@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { HiOutlinePencilAlt, HiOutlineTrash, HiOutlinePlus, HiOutlineFilter, HiOutlineChartBar, HiOutlineCurrencyDollar } from "react-icons/hi";
 
-const AllPackages = ({ stats, statsLoading }) => {
+const AllPackages = ({ stats, statsLoading, setActivePanelId }) => {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("all");
@@ -174,10 +174,10 @@ const AllPackages = ({ stats, statsLoading }) => {
               <HiOutlineFilter />
               <span>Filters</span>
             </button>
-            <Link to="/profile/admin/add-package" className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-lg shadow-emerald-600/10">
+            <button onClick={() => setActivePanelId(2)} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-lg shadow-emerald-600/10">
               <HiOutlinePlus />
               <span>New Package</span>
-            </Link>
+            </button>
           </div>
         </div>
 
@@ -204,7 +204,7 @@ const AllPackages = ({ stats, statsLoading }) => {
                   <div className="p-5 flex flex-col flex-1">
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="font-bold text-gray-800 group-hover:text-primary transition-colors line-clamp-1">{pack.packageName}</h3>
-                      <span className="text-emerald-600 font-bold">${pack.packagePrice.toLocaleString()}</span>
+                      <span className="text-emerald-600 font-bold">₹{pack?.packagePrice?.toLocaleString() || 0}</span>
                     </div>
                     <p className="text-xs text-gray-500 line-clamp-2 mb-6 h-8">
                       {pack.packageDescription || "Enjoy a premium travel experience with our curated packages."}
@@ -223,7 +223,7 @@ const AllPackages = ({ stats, statsLoading }) => {
                       </div>
                       
                       <div className="flex gap-1">
-                        <Link to={`/profile/admin/update-package/${pack._id}`} className="p-2 bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-500 rounded-lg transition-colors">
+                        <Link to={`/admin/update-package/${pack._id}`} className="p-2 bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-500 rounded-lg transition-colors">
                           <HiOutlinePencilAlt className="text-lg" />
                         </Link>
                         <button onClick={() => handleDelete(pack._id)} className="p-2 bg-gray-50 hover:bg-rose-50 text-gray-400 hover:text-rose-500 rounded-lg transition-colors">
@@ -236,13 +236,13 @@ const AllPackages = ({ stats, statsLoading }) => {
               ))}
               
               {/* Add New Package Card */}
-              <Link to="/profile/admin/add-package" className="admin-card border-dashed border-2 border-gray-200 bg-gray-50/50 flex flex-col items-center justify-center p-8 text-center group hover:border-emerald-500 hover:bg-white transition-all cursor-pointer min-h-[300px]">
+              <div onClick={() => setActivePanelId(2)} className="admin-card border-dashed border-2 border-gray-200 bg-gray-50/50 flex flex-col items-center justify-center p-8 text-center group hover:border-emerald-500 hover:bg-white transition-all cursor-pointer min-h-[300px]">
                 <div className="w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:text-emerald-500 transition-colors mb-4 group-hover:rotate-90 duration-500">
                   <HiOutlinePlus className="text-3xl" />
                 </div>
                 <h4 className="font-bold text-gray-600 group-hover:text-emerald-500 transition-colors">Add New Package</h4>
                 <p className="text-[10px] text-gray-400 mt-2 uppercase font-bold tracking-widest">Create Itinerary</p>
-              </Link>
+              </div>
             </>
           )}
         </div>

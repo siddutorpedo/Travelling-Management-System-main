@@ -20,7 +20,7 @@ export const getDashboardStats = async (req, res) => {
     const activeTravelersCount = await Booking.distinct("buyer");
     const activeTravelers = activeTravelersCount.length;
 
-    // 5. Pending Requests
+    // 5. Pending Requests (Only 'Pending' or 'Booked' - not yet Completed)
     const pendingRequests = await Booking.countDocuments({
       status: { $in: ["Booked", "Pending"] },
     });

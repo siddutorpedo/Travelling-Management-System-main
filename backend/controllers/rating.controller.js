@@ -125,12 +125,13 @@ export const getAllRatings = async (req, res) => {
     const ratings = await RatingReview.find({
       packageId: req?.params?.id,
     })
+      .populate("userRef", "username avatar")
       .limit(req?.params?.limit)
       .sort({ createdAt: -1 });
     if (ratings) {
-      return res.send(ratings);
+      return res.status(200).send(ratings);
     } else {
-      return res.send("N/A");
+      return res.status(200).send([]);
     }
   } catch (error) {
     console.error(error);

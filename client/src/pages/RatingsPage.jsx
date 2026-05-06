@@ -26,7 +26,7 @@ const RatingsPage = () => {
         setTotalRatings(data2.totalRatings);
         setLoading(false);
       } else {
-        setPackageRatings("No ratings yet!");
+        setPackageRatings([]);
         setLoading(false);
       }
     } catch (error) {

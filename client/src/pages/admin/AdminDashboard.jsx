@@ -99,7 +99,24 @@ const AdminDashboard = () => {
                 >
                   <span>{statsLoading ? "Refreshing..." : "Refresh Stats"}</span>
                 </button>
-                <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center gap-2">
+                <button 
+                  onClick={() => {
+                    if (!stats?.totalBookings) return alert("No records to export!");
+                    const csvContent = "data:text/csv;charset=utf-8," 
+                      + "Stat,Value\n"
+                      + `Total Bookings,${stats.totalBookings}\n`
+                      + `Total Revenue,${stats.totalRevenue}\n`
+                      + `Active Travelers,${stats.activeTravelers}\n`
+                      + `Pending Requests,${stats.pendingRequests}`;
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", "travel_report.csv");
+                    document.body.appendChild(link);
+                    link.click();
+                  }}
+                  className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
+                >
                   <span>Export Report</span>
                 </button>
               </div>
@@ -146,7 +163,9 @@ const AdminDashboard = () => {
                 <div className="stat-info">
                   <h3>Pending Requests</h3>
                   <div className="stat-value">{statsLoading ? "..." : stats?.pendingRequests || 0}</div>
-                  <div className="text-xs text-rose-500 mt-2 font-medium">Action Required</div>
+                  {stats?.pendingRequests > 0 && (
+                    <div className="text-xs text-rose-500 mt-2 font-medium pulse-animation">Action Required</div>
+                  )}
                 </div>
                 <div className="stat-icon bg-orange-50 text-orange-500">
                   <HiOutlineClock className="text-2xl" />
@@ -203,7 +222,7 @@ const AdminDashboard = () => {
                 <span>Add New Package</span>
               </button>
             </div>
-            <AllPackages stats={stats} statsLoading={statsLoading} />
+            <AllPackages stats={stats} statsLoading={statsLoading} setActivePanelId={setActivePanelId} />
           </div>
         );
       case 4:
@@ -225,17 +244,13 @@ const AdminDashboard = () => {
                 <p className="page-subtitle">Review and manage corporate travel arrangements across all regions.</p>
               </div>
               <div className="flex gap-3">
-                <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center gap-2">
-                  <HiOutlineDownload />
-                  <span>Export</span>
-                </button>
                 <button onClick={() => setActivePanelId(2)} className="px-4 py-2 bg-accent text-white rounded-lg text-sm font-bold hover:bg-accent-hover transition-colors flex items-center gap-2">
                   <HiPlusCircle />
                   <span>Add New Booking</span>
                 </button>
               </div>
             </div>
-            <AllBookings stats={stats} statsLoading={statsLoading} />
+            <AllBookings stats={stats} statsLoading={statsLoading} refreshStats={fetchStats} />
           </div>
         );
       default:

@@ -6,23 +6,39 @@ import Spinner from "../components/Spinner";
 export default function AdminRoute() {
   const { currentUser } = useSelector((state) => state.user);
   const [ok, setOk] = useState(false);
-
-  const authCheck = async () => {
-    const res = await fetch("/api/user/admin-auth", {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-    });
-    const data = await res.json();
-    if (data.check) setOk(true);
-    else setOk(false);
-  };
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    if (currentUser !== null) authCheck();
+    const authCheck = async () => {
+      try {
+        const res = await fetch("/api/user/admin-auth", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        const data = await res.json();
+        if (data.check) {
+          setOk(true);
+        } else {
+          setOk(false);
+        }
+      } catch (error) {
+        setOk(false);
+      } finally {
+        setChecking(false);
+      }
+    };
+
+    if (currentUser && currentUser.user_role === 1) {
+      authCheck();
+    } else {
+      setOk(false);
+      setChecking(false);
+    }
   }, [currentUser]);
 
-  return ok ? <Outlet /> : <Spinner />;
+  if (checking) return <Spinner />;
+
+  return ok ? <Outlet /> : <Navigate to="/login" />;
 }

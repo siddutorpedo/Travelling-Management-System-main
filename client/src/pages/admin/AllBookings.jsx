@@ -4,18 +4,21 @@ import { Link } from "react-router-dom";
 import Chart from "../components/Chart";
 import { HiOutlineDownload, HiOutlineFilter, HiOutlineDotsVertical } from "react-icons/hi";
 
-const AllBookings = ({ dashboardView = false, stats, statsLoading }) => {
+const AllBookings = ({ dashboardView = false, stats, statsLoading, refreshStats }) => {
   const { currentUser } = useSelector((state) => state.user);
   const [currentBookings, setCurrentBookings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("All Statuses");
   const [searchTerm, setSearchTerm] = useState("");
+  const [destinationFilter, setDestinationFilter] = useState("");
 
   const getAllBookings = async () => {
     try {
       setLoading(true);
+      const endpoint = dashboardView ? "/api/booking/get-currentBookings" : "/api/booking/get-allBookings";
       const res = await fetch(
-        `/api/booking/get-currentBookings?searchTerm=${searchTerm}`
+        `${endpoint}?searchTerm=${searchTerm}&status=${statusFilter}&destination=${destinationFilter}`
       );
       const data = await res.json();
       if (data?.success) {
@@ -23,6 +26,7 @@ const AllBookings = ({ dashboardView = false, stats, statsLoading }) => {
         setLoading(false);
         setError(false);
       } else {
+        setCurrentBookings([]);
         setLoading(false);
         setError(data?.message);
       }
@@ -34,7 +38,30 @@ const AllBookings = ({ dashboardView = false, stats, statsLoading }) => {
 
   useEffect(() => {
     getAllBookings();
-  }, [searchTerm]);
+  }, [searchTerm, statusFilter, destinationFilter]);
+
+  const handleExport = () => {
+    if (!currentBookings.length) return alert("No records to export!");
+    const headers = ["Booking ID", "Customer", "Email", "Destination", "Date", "Status", "Amount"];
+    const rows = currentBookings.map(b => [
+      `VA-${b._id.substring(18).toUpperCase()}`,
+      b.buyer?.username,
+      b.buyer?.email,
+      b.packageDetails?.packageName,
+      new Date(b.date).toLocaleDateString(),
+      b.status,
+      `₹${b.packageDetails?.packagePrice}`
+    ]);
+    
+    let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(r => r.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "all_bookings_report.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleCancel = async (id) => {
     if (!window.confirm("Are you sure you want to cancel this booking?")) return;
@@ -51,6 +78,30 @@ const AllBookings = ({ dashboardView = false, stats, statsLoading }) => {
         setLoading(false);
         alert(data?.message);
         getAllBookings();
+        if (refreshStats) refreshStats();
+      } else {
+        setLoading(false);
+        alert(data?.message);
+      }
+    } catch (error) {
+      console.log(error);
+      setLoading(false);
+    }
+  };
+
+  const handleComplete = async (id) => {
+    if (!window.confirm("Mark this trip as completed?")) return;
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/booking/complete-booking/${id}`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (data?.success) {
+        setLoading(false);
+        alert(data?.message);
+        getAllBookings();
+        if (refreshStats) refreshStats();
       } else {
         setLoading(false);
         alert(data?.message);
@@ -91,11 +142,11 @@ const AllBookings = ({ dashboardView = false, stats, statsLoading }) => {
                 <td>{booking?.packageDetails?.packageName}</td>
                 <td>{new Date(booking?.date).toLocaleDateString()}</td>
                 <td>
-                  <span className={`status-badge ${booking.status === "Booked" ? "status-confirmed" : booking.status === "Cancelled" ? "status-cancelled" : "status-pending"}`}>
+                  <span className={`status-badge ${booking.status === "Booked" ? "status-confirmed" : booking.status === "Cancelled" ? "status-cancelled" : booking.status === "Completed" ? "status-completed" : "status-pending"}`}>
                     {booking.status}
                   </span>
                 </td>
-                <td className="font-bold">${booking?.packageDetails?.packagePrice || '1,240'}</td>
+                <td className="font-bold">₹{booking?.packageDetails?.packagePrice || '1,240'}</td>
               </tr>
             ))}
             {currentBookings.length === 0 && !loading && (
@@ -117,15 +168,30 @@ const AllBookings = ({ dashboardView = false, stats, statsLoading }) => {
           <div className="flex gap-4 flex-wrap">
              <div className="relative min-w-[200px]">
               <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Booking Status</label>
-              <select className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-primary">
+              <select 
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-primary cursor-pointer"
+              >
                 <option>All Statuses</option>
-                <option>Confirmed</option>
+                <option>Booked</option>
                 <option>Pending</option>
                 <option>Cancelled</option>
+                <option>Completed</option>
               </select>
             </div>
             <div className="relative min-w-[200px]">
-              <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Search</label>
+              <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Destination</label>
+              <input
+                className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-primary"
+                type="text"
+                placeholder="Filter by Destination"
+                value={destinationFilter}
+                onChange={(e) => setDestinationFilter(e.target.value)}
+              />
+            </div>
+            <div className="relative min-w-[200px]">
+              <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Search (Username/Email)</label>
               <input
                 className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-primary"
                 type="text"
@@ -136,11 +202,12 @@ const AllBookings = ({ dashboardView = false, stats, statsLoading }) => {
             </div>
           </div>
           <div className="flex gap-2 self-end">
-            <button className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-bold hover:bg-slate-800 transition-colors">
-              Apply Filters
-            </button>
-            <button className="p-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50">
-              <HiOutlineFilter />
+            <button 
+              onClick={handleExport}
+              className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-50 transition-colors flex items-center gap-2"
+            >
+              <HiOutlineDownload />
+              <span>Export CSV</span>
             </button>
           </div>
         </div>
@@ -178,16 +245,25 @@ const AllBookings = ({ dashboardView = false, stats, statsLoading }) => {
                       <td>{booking?.packageDetails?.packageName}</td>
                       <td>{new Date(booking?.date).toLocaleDateString()}</td>
                       <td>
-                        <span className={`status-badge ${booking.status === "Booked" ? "status-confirmed" : booking.status === "Cancelled" ? "status-cancelled" : "status-pending"}`}>
+                        <span className={`status-badge ${booking.status === "Booked" ? "status-confirmed" : booking.status === "Cancelled" ? "status-cancelled" : booking.status === "Completed" ? "status-completed" : "status-pending"}`}>
                           {booking.status}
                         </span>
                       </td>
-                      <td className="font-bold">${booking?.packageDetails?.packagePrice || '2,450'}</td>
+                      <td className="font-bold">₹{booking?.packageDetails?.packagePrice || '2,450'}</td>
                       <td>
                         <div className="flex items-center gap-2">
+                          {booking.status === "Booked" && (
+                            <button 
+                              onClick={() => handleComplete(booking._id)}
+                              className="text-xs font-bold text-emerald-600 hover:underline"
+                            >
+                              Complete
+                            </button>
+                          )}
                            <button 
                             onClick={() => handleCancel(booking._id)}
-                            className="text-xs font-bold text-rose-600 hover:underline"
+                            className="text-xs font-bold text-rose-600 hover:underline disabled:opacity-50"
+                            disabled={booking.status === "Cancelled" || booking.status === "Completed"}
                           >
                             Cancel
                           </button>
@@ -242,7 +318,7 @@ const AllBookings = ({ dashboardView = false, stats, statsLoading }) => {
            <div className="admin-card p-6 flex justify-between items-center">
               <div>
                 <p className="text-xs font-bold text-gray-400 uppercase mb-1">Revenue Projected</p>
-                <p className="text-2xl font-bold text-gray-800">${statsLoading ? "..." : stats?.totalRevenue?.toLocaleString() || 0}</p>
+                 <p className="text-2xl font-bold text-gray-800">₹{statsLoading ? "..." : stats?.totalRevenue?.toLocaleString() || 0}</p>
                 <p className="text-[10px] text-blue-500 font-bold mt-1">On track for Q4 goal</p>
               </div>
               <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-500">

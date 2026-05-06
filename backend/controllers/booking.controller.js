@@ -104,9 +104,17 @@ export const getCurrentBookings = async (req, res) => {
 export const getAllBookings = async (req, res) => {
   try {
     const searchTerm = req?.query?.searchTerm || "";
-    const bookings = await Booking.find({})
-      .populate("packageDetails")
-      // .populate("buyer", "username email")
+    const status = req?.query?.status || "";
+    
+    let query = {};
+    if (status && status !== "All Statuses") {
+      query.status = status;
+    }
+
+    const bookings = await Booking.find(query)
+      .populate({
+        path: "packageDetails",
+      })
       .populate({
         path: "buyer",
         match: {
@@ -116,17 +124,24 @@ export const getAllBookings = async (req, res) => {
           ],
         },
       })
-      .sort({ createdAt: "asc" });
-    let bookingsFilterd = [];
-    bookings.map((booking) => {
-      if (booking.buyer !== null) {
-        bookingsFilterd.push(booking);
-      }
-    });
-    if (bookingsFilterd.length) {
+      .sort({ createdAt: "desc" });
+
+    // Filter out if buyer search didn't match (when searchTerm is provided)
+    let bookingsFiltered = bookings.filter(b => b.buyer !== null);
+    
+    // If we have a destination filter (using searchTerm for simplicity or adding a new param)
+    const destinationTerm = req?.query?.destination || "";
+    if (destinationTerm) {
+      bookingsFiltered = bookingsFiltered.filter(b => 
+        b.packageDetails?.packageDestination?.toLowerCase().includes(destinationTerm.toLowerCase()) ||
+        b.packageDetails?.packageName?.toLowerCase().includes(destinationTerm.toLowerCase())
+      );
+    }
+
+    if (bookingsFiltered.length) {
       return res.status(200).send({
         success: true,
-        bookings: bookingsFilterd,
+        bookings: bookingsFiltered,
       });
     } else {
       return res.status(200).send({
@@ -307,6 +322,36 @@ export const cancelBooking = async (req, res) => {
     return res.status(500).send({
       success: false,
       message: "Internal Server Error during booking cancellation",
+      error: error.message,
+    });
+  }
+};
+//complete booking
+export const completeBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findByIdAndUpdate(
+      req?.params?.id,
+      {
+        status: "Completed",
+      },
+      { new: true }
+    );
+    if (booking) {
+      return res.status(200).send({
+        success: true,
+        message: "Booking Marked as Completed!",
+      });
+    } else {
+      return res.status(500).send({
+        success: false,
+        message: "Something went wrong while completing booking!",
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send({
+      success: false,
+      message: "Internal Server Error during booking completion",
       error: error.message,
     });
   }

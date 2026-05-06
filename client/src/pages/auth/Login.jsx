@@ -4,7 +4,7 @@ import {
   loginStart,
   loginSuccess,
   loginFailure,
-} from "../redux/user/userSlice.js";
+} from "../../redux/user/userSlice.js";
 import { useDispatch, useSelector } from "react-redux";
 
 const Login = () => {

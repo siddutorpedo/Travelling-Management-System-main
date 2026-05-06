@@ -65,15 +65,15 @@ const PackageCard = ({ packageData }) => {
               {packageData.offer && packageData.packageDiscountPrice ? (
                 <>
                   <span className="text-xs text-slate-400 line-through">
-                    ${packageData.packagePrice}
+                    ₹{packageData.packagePrice}
                   </span>
                   <span className="font-bold text-xl text-blue-600">
-                    ${packageData.packageDiscountPrice}
+                    ₹{packageData.packageDiscountPrice}
                   </span>
                 </>
               ) : (
                 <span className="font-bold text-xl text-blue-600">
-                  ${packageData.packagePrice}
+                  ₹{packageData.packagePrice}
                 </span>
               )}
             </div>

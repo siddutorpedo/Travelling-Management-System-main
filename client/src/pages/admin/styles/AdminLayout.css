@@ -316,6 +316,20 @@
   background-color: var(--bg-light);
 }
 
+.status-badge.status-completed {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.pulse-animation {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 @media (max-sm: 1024px) {
   .admin-sidebar {
     width: 0;

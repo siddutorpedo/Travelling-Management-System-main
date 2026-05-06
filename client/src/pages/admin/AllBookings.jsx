@@ -22,16 +22,17 @@ const AllBookings = ({ dashboardView = false, stats, statsLoading, refreshStats 
       );
       const data = await res.json();
       if (data?.success) {
-        setCurrentBookings(data?.bookings);
-        setLoading(false);
+        setCurrentBookings(data?.bookings || []);
         setError(false);
       } else {
         setCurrentBookings([]);
-        setLoading(false);
-        setError(data?.message);
+        setError(data?.message || false);
       }
     } catch (error) {
       console.log(error);
+      setCurrentBookings([]);
+      setError("Could not connect to server.");
+    } finally {
       setLoading(false);
     }
   };
@@ -146,7 +147,7 @@ const AllBookings = ({ dashboardView = false, stats, statsLoading, refreshStats 
                     {booking.status}
                   </span>
                 </td>
-                <td className="font-bold">₹{booking?.packageDetails?.packagePrice || '1,240'}</td>
+                 <td className="font-bold">₹{booking?.totalPrice?.toLocaleString() || booking?.packageDetails?.packagePrice || '—'}</td>
               </tr>
             ))}
             {currentBookings.length === 0 && !loading && (
@@ -249,7 +250,7 @@ const AllBookings = ({ dashboardView = false, stats, statsLoading, refreshStats 
                           {booking.status}
                         </span>
                       </td>
-                      <td className="font-bold">₹{booking?.packageDetails?.packagePrice || '2,450'}</td>
+                      <td className="font-bold">₹{booking?.totalPrice?.toLocaleString() || booking?.packageDetails?.packagePrice || '—'}</td>
                       <td>
                         <div className="flex items-center gap-2">
                           {booking.status === "Booked" && (

@@ -10,7 +10,6 @@ const MyBookings = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const getAllBookings = async () => {
-    setCurrentBookings([]);
     try {
       setLoading(true);
       const res = await fetch(
@@ -18,15 +17,18 @@ const MyBookings = () => {
       );
       const data = await res.json();
       if (data?.success) {
-        setCurrentBookings(data?.bookings);
-        setLoading(false);
+        setCurrentBookings(data?.bookings || []);
         setError(false);
       } else {
-        setLoading(false);
-        setError(data?.message);
+        setCurrentBookings([]);
+        setError(data?.message || "Failed to load bookings.");
       }
     } catch (error) {
       console.log(error);
+      setCurrentBookings([]);
+      setError("Could not connect to server.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -84,7 +86,7 @@ const MyBookings = () => {
                 <Link to={`/package/${booking?.packageDetails?._id}`}>
                   <img
                     className="w-12 h-12"
-                    src={booking?.packageDetails?.packageImages[0]}
+                    src={booking?.packageDetails?.packageImages?.[0]}
                     alt="Package Image"
                   />
                 </Link>

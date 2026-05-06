@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import PackageCard from "./PackageCard";
 
 const Search = () => {
   const navigate = useNavigate();
+  const { search } = useLocation();
   const [sideBarSearchData, setSideBarSearchData] = useState({
     searchTerm: "",
     offer: false,
@@ -16,7 +17,7 @@ const Search = () => {
   //   console.log(listings);
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(location.search);
+    const urlParams = new URLSearchParams(search);
     const searchTermFromUrl = urlParams.get("searchTerm");
     const offerFromUrl = urlParams.get("offer");
     const sortFromUrl = urlParams.get("sort");
@@ -38,8 +39,7 @@ const Search = () => {
         const searchQuery = urlParams.toString();
         const res = await fetch(`/api/package/get-packages?${searchQuery}`);
         const data = await res.json();
-        setLoading(false);
-        setAllPackages(data?.packages);
+        setAllPackages(data?.packages || []);
         if (data?.packages?.length > 8) {
           setShowMoreBtn(true);
         } else {
@@ -47,10 +47,13 @@ const Search = () => {
         }
       } catch (error) {
         console.log(error);
+        setAllPackages([]);
+      } finally {
+        setLoading(false);
       }
     };
     fetchAllPackages();
-  }, [location.search]);
+  }, [search]);
 
   const handleChange = (e) => {
     if (e.target.id === "searchTerm") {
@@ -90,15 +93,19 @@ const Search = () => {
   const onShowMoreSClick = async () => {
     const numberOfPackages = allPackages.length;
     const startIndex = numberOfPackages;
-    const urlParams = new URLSearchParams(location.search);
+    const urlParams = new URLSearchParams(search);
     urlParams.set("startIndex", startIndex);
     const searchQuery = urlParams.toString();
-    const res = await fetch(`/api/package/get-packages?${searchQuery}`);
-    const data = await res.json();
-    if (data?.packages?.length < 9) {
-      setShowMoreBtn(false);
+    try {
+      const res = await fetch(`/api/package/get-packages?${searchQuery}`);
+      const data = await res.json();
+      if (data?.packages?.length < 9) {
+        setShowMoreBtn(false);
+      }
+      setAllPackages([...allPackages, ...(data?.packages || [])]);
+    } catch (error) {
+      console.log(error);
     }
-    setAllPackages([...allPackages, ...data?.packages]);
   };
 
   return (

@@ -2,58 +2,43 @@ import Package from "../models/package.model.js";
 import RatingReview from "../models/ratings_reviews.model.js";
 
 export const giveRating = async (req, res) => {
-  if (req.user.id !== req.body.userRef) {
-    return res.status(401).send({
-      success: false,
-      message: "You can only give rating on your own account!",
-    });
-  }
   try {
+    if (req.user.id !== req.body.userRef) {
+      return res.status(401).send({
+        success: false,
+        message: "You can only give rating on your own account!",
+      });
+    }
+
     const newRating = await RatingReview.create(req.body);
-    if (newRating) {
-      const ratings = await RatingReview.find({
-        packageId: req.body.packageId,
+    if (!newRating) {
+      return res.status(500).send({
+        success: false,
+        message: "Something went wrong while saving the rating.",
       });
+    }
 
-      let totalRatings = await ratings.length;
-      let totalStars = 0;
-      await ratings.map((rating) => {
-        totalStars += rating.rating;
+    const ratings = await RatingReview.find({ packageId: req.body.packageId });
+    const totalRatings = ratings.length;
+    let totalStars = 0;
+    ratings.forEach((rating) => { totalStars += rating.rating; });
+    const average_rating = Math.round((totalStars / totalRatings) * 10) / 10;
+
+    const updatedPackage = await Package.findByIdAndUpdate(
+      req.body.packageId,
+      { $set: { packageRating: average_rating, packageTotalRatings: totalRatings } },
+      { new: true }
+    );
+
+    if (updatedPackage) {
+      return res.status(201).send({
+        success: true,
+        message: "Thanks for your feedback!",
       });
-      let average_rating =
-        (await Math.round((totalStars / totalRatings) * 10)) / 10;
-      // console.log("total ratings: " + totalRatings);
-      // console.log("total stars: " + totalStars);
-      // console.log("average: " + average_rating);
-
-      const setPackageRatings = await Package.findByIdAndUpdate(
-        req.body.packageId,
-        {
-          $set: {
-            packageRating: average_rating,
-            packageTotalRatings: totalRatings,
-          },
-        },
-        { new: true }
-      );
-
-      // console.log(setPackageRatings);
-
-      if (setPackageRatings) {
-        return res.status(201).send({
-          success: true,
-          message: "Thanks for your feedback!",
-        });
-      } else {
-        return res.status(500).send({
-          success: false,
-          message: "Soemthing went wrong while rating to package!",
-        });
-      }
     } else {
       return res.status(500).send({
         success: false,
-        message: "Soemthing went wrong",
+        message: "Rating saved but failed to update package stats.",
       });
     }
   } catch (error) {

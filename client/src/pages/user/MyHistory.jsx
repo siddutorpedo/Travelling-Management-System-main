@@ -17,15 +17,18 @@ const MyHistory = () => {
       );
       const data = await res.json();
       if (data?.success) {
-        setAllBookings(data?.bookings);
-        setLoading(false);
+        setAllBookings(data?.bookings || []);
         setError(false);
       } else {
-        setLoading(false);
-        setError(data?.message);
+        setAllBookings([]);
+        setError(data?.message || "Failed to load history.");
       }
     } catch (error) {
       console.log(error);
+      setAllBookings([]);
+      setError("Could not connect to server.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -84,7 +87,7 @@ const MyHistory = () => {
                 <Link to={`/package/${booking?.packageDetails?._id}`}>
                   <img
                     className="w-12 h-12"
-                    src={booking?.packageDetails?.packageImages[0]}
+                    src={booking?.packageDetails?.packageImages?.[0]}
                     alt="Package Image"
                   />
                 </Link>
@@ -97,7 +100,8 @@ const MyHistory = () => {
                 <p>{booking?.buyer?.email}</p>
                 <p>{booking?.date}</p>
                 {(new Date(booking?.date).getTime() < new Date().getTime() ||
-                  booking?.status === "Cancelled") && (
+                  booking?.status === "Cancelled" ||
+                  booking?.status === "Completed") && (
                   <button
                     onClick={() => {
                       handleHistoryDelete(booking._id);

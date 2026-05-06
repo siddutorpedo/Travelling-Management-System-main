@@ -1,6 +1,6 @@
 import { Rating } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "react-router-dom";
 import RatingCard from "./RatingCard";
 
 const RatingsPage = () => {
@@ -14,23 +14,24 @@ const RatingsPage = () => {
   const getRatings = async () => {
     try {
       setLoading(true);
-      const res = await fetch(
-        `/api/rating/get-ratings/${params.id}/999999999999`
-      );
+      const res = await fetch(`/api/rating/get-ratings/${params.id}/999999999999`);
       const res2 = await fetch(`/api/rating/average-rating/${params.id}`);
       const data = await res.json();
       const data2 = await res2.json();
-      if (data && data2) {
+      if (Array.isArray(data)) {
         setPackageRatings(data);
-        setShowRatingStars(data2.rating);
-        setTotalRatings(data2.totalRatings);
-        setLoading(false);
       } else {
         setPackageRatings([]);
-        setLoading(false);
+      }
+      if (data2) {
+        setShowRatingStars(data2.rating || 0);
+        setTotalRatings(data2.totalRatings || 0);
       }
     } catch (error) {
       console.log(error);
+      setPackageRatings([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -42,10 +43,10 @@ const RatingsPage = () => {
     <div className="w-full p-3">
       <div className="w-full">
         {loading && <h1 className="text-center text-2xl">Loading...</h1>}
-        {!loading && !packageRatings && (
+        {!loading && packageRatings.length === 0 && (
           <h1 className="text-center text-2xl">No Ratings Found!</h1>
         )}
-        {!loading && packageRatings && (
+        {!loading && packageRatings.length > 0 && (
           <div className="w-full p-2 flex flex-col gap-2">
             <h1 className="flex items-center mb-2">
               Rating:
